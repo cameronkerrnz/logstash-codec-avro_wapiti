@@ -1,19 +1,23 @@
-# Logstash Codec - Avro Schema Registry
+# Logstash Codec - Wapiti
 
 ### v1.1.0
 
-This plugin is used to serialize Logstash events as
-Avro datums, as well as deserializing Avro datums into
-Logstash events.
+This plugin encapsulates events to/from an AVRO datum for Kafka
+according to the 'Wapiti' schema. The Wapiti schema describes
+a backbone queuing format for numerous types of messages. Each
+message has a 'shipping label', which consumers (not just logstash)
+can use to make quick decisions (eg. do I care about this data,
+which file should I archive this data to), without having to parse
+the embedded message in any way.
 
-Decode/encode Avro records as Logstash events using the 
-associated Avro schema from a Confluent schema registry.
-(https://github.com/confluentinc/schema-registry)
+The encapsulated message therefore can take any form, although JSON is
+most common. You could imagine packet-data, or even files going through
+the backbone.
 
 ## Installation
 
 ```
-logstash-plugin install logstash-codec-avro_schema_registry
+logstash-plugin install logstash-codec-avro_wapiti
 ```
 
 ##  Decoding (input)
@@ -49,54 +53,95 @@ When this codec is used to encode, you may pass the following options:
 - ``ca_certificate`` -  CA Certificate
 - ``verify_mode`` -  SSL Verify modes.  Valid options are `verify_none`, `verify_peer`,  `verify_client_once` , and `verify_fail_if_no_peer_cert`.  Default is `verify_peer`
 
-  
+*NOTE* There is currently no configuration exposed for logstash-codec-avro_wapiti;
+all behaviour is currently hard-coded at this early stage.
+
+## Known Issues
+
+- Should be more robust in the face of errors (dead letter queue, etc.)
+  Currently logstash will crash when an unhandled exception occurs.
+- Code is tightly coupled to the schema implementation.
 
 ## Usage
 
-### Basic usage with Kafka input and output.
+### Basic usage with Kafka output
+
+Imagine you have logstash acting as a reception/submission tier. This
+layer has a role to read messages (probably from the network), and produce
+them into the Kafka queue according to an AVRO schema known as Wapiti.
+
+```
+input {
+    tcp {
+        host => "0.0.0.0"
+        port => 5140
+        mode => "server"
+        codec => "json_lines"
+    }
+}
+
+input {
+    beats {
+        port => 5044
+        add_field => {
+            "[@metadata][wapiti][processing_key]" => "%{type}"
+        }
+    }
+}
+
+output {
+  kafka {
+    topic_id => "wapiti_backbone_sandpit"
+    compression_type => "snappy"
+
+    codec => avro_schema_registry {
+      endpoint => "http://127.0.0.1:8081"
+      subject_name => "wapiti_backbone_submitted-value"
+      schema_version => "4"
+      register_schema => false
+      binary_encoded => true
+    }
+
+    value_serializer => "org.apache.kafka.common.serialization.ByteArraySerializer"
+  }
+}
+```
+
+### Basic usage with Kafka input
+
+This would represent the enrichment tier, and typically you would end up
+throwing this at Elasticsearch. Here we illustrate a development configuration
+that uses the rubydebug codec with the metadata option set to true so we can
+inspect the `@metadata` field.
 
 ```
 input {
   kafka {
-    ...
+    bootstrap_servers => "127.0.0.1:9092"
+    client_id => "logstash_enrichment_1"
+    group_id => "logstash_enrichment"
+    topics => ["wapiti_backbone_submitted"]
+
+    decorate_events => true
+
     codec => avro_schema_registry {
-      endpoint => "http://schemas.example.com"
+      endpoint => "http://127.0.0.1:8081"
+      subject_name => "wapiti_backbone_submitted-value"
+      schema_version => "4"
+      register_schema => false
+      binary_encoded => true
     }
+
     value_deserializer_class => "org.apache.kafka.common.serialization.ByteArrayDeserializer"
   }
 }
-filter {
-  ...
-}
-output {
-  kafka {
-    ...
-    codec => avro_schema_registry {
-      endpoint => "http://schemas.example.com"
-      subject_name => "my_kafka_subject_name"
-      schema_uri => "/app/my_kafka_subject.avsc"
-      register_schema => true
-    }
-    value_serializer => "org.apache.kafka.common.serialization.ByteArraySerializer"
-  }
-}
-```
 
-### Using signed certificate for registry authentication
-
-```
 output {
-  kafka {
-    ...
-    codec => avro_schema_registry {
-      endpoint => "http://schemas.example.com"
-      schema_id => 47
-      client_key          => "./client.key"
-      client_certificate  => "./client.crt"
-      ca_certificate      => "./ca.pem"
-      verify_mode         => "verify_peer"
+    file {
+        path => "/tmp/enrichment.out"
+        codec => rubydebug {
+            metadata => true
+        }
     }
-    value_serializer => "org.apache.kafka.common.serialization.ByteArraySerializer"
-  }
 }
 ```

@@ -5,7 +5,7 @@ How to Install
 --------------
 
 ```
-bin/plugin install logstash-codec-avro_schema_registry
+bin/plugin install logstash-codec-avro_wapiti
 ```
 
 How to Use
@@ -26,7 +26,7 @@ type using the avro codec with the logstash-input-kafka plugin.
 input {
   kafka {
     topic_id => 'test_topic'
-    codec => avro_schema_registry {
+    codec => avro_wapiti {
       endpoint => 'http://schemas.example.com'
     }
   }

@@ -1,12 +1,12 @@
 Gem::Specification.new do |s|
-  s.name          = 'logstash-codec-avro_schema_registry'
+  s.name          = 'logstash-codec-avro_wapiti'
   s.version       = '1.1.0'
   s.licenses      = ['Apache License (2.0)']
-  s.summary         = "Encode and decode avro formatted data from a Confluent schema registry"
-  s.description     = "Encode and decode avro formatted data from a Confluent schema registry"
-  s.authors         = ["RevPoint Media"]
-  s.email           = 'tech@revpointmedia.com'
-  s.homepage        = "https://github.com/revpoint/logstash-codec-avro_schema_registry"
+  s.summary         = "Encode and decode avro formatted data for a Kafka/AVRO Wapiti schema"
+  s.description     = "Encode and decode avro formatted data for a Kafka/AVRO Wapiti schema"
+  s.authors         = ["Cameron Kerr"]
+  s.email           = 'cameronkerrnz@gmail.com'
+  s.homepage        = "https://github.com/cameronkerrnz/logstash-codec-avro_wapiti"
   s.require_paths   = ["lib"]
 
   # Files

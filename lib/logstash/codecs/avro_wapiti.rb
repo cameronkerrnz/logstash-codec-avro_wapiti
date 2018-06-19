@@ -65,7 +65,7 @@ MAGIC_BYTE = 0
 # input {
 #   kafka {
 #     ...
-#     codec => avro_schema_registry {
+#     codec => avro_wapiti {
 #       endpoint => "http://schemas.example.com"
 #     }
 #     value_deserializer_class => "org.apache.kafka.common.serialization.ByteArrayDeserializer"
@@ -77,7 +77,7 @@ MAGIC_BYTE = 0
 # output {
 #   kafka {
 #     ...
-#     codec => avro_schema_registry {
+#     codec => avro_wapiti {
 #       endpoint => "http://schemas.example.com"
 #       subject_name => "my_kafka_subject_name"
 #       schema_uri => "/app/my_kafka_subject.avsc"
@@ -95,7 +95,7 @@ MAGIC_BYTE = 0
 # output {
 #   kafka {
 #     ...
-#     codec => avro_schema_registry {
+#     codec => avro_wapiti {
 #       endpoint => "http://schemas.example.com"
 #       schema_id => 47
 #       client_key          => "./client.key"
@@ -108,9 +108,9 @@ MAGIC_BYTE = 0
 # }
 # ----------------------------------
 
-class LogStash::Codecs::AvroSchemaRegistry < LogStash::Codecs::Base
-  config_name "avro_schema_registry"
-  
+class LogStash::Codecs::AvroWapiti < LogStash::Codecs::Base
+  config_name "avro_wapiti"
+
   EXCLUDE_ALWAYS = [ "@timestamp", "@version" ]
 
   # schema registry endpoint and credentials
@@ -131,7 +131,7 @@ class LogStash::Codecs::AvroSchemaRegistry < LogStash::Codecs::Base
   config :client_key, :validate => :string, :default => nil
   config :ca_certificate, :validate => :string, :default => nil
   config :verify_mode, :validate => :string, :default => 'verify_peer'
-  
+
   public
   def register
 
@@ -219,7 +219,31 @@ class LogStash::Codecs::AvroSchemaRegistry < LogStash::Codecs::Base
         schema = get_schema(schema_id)
         decoder = Avro::IO::BinaryDecoder.new(datum)
         datum_reader = Avro::IO::DatumReader.new(schema)
-        yield LogStash::Event.new(datum_reader.read(decoder))
+
+        avdat = datum_reader.read(decoder)
+        wapiti_metadata = {
+            "wapiti" => {
+            "submitted_from" => avdat["submitted_from"],
+            "originating_host" => avdat["originating_host"],
+            "vertical" => avdat["vertical"],
+            "environment" => avdat["environment"],
+            "processing_key" => avdat["processing_key"],
+            "message_format" => avdat["message_format"]
+          }
+        }
+
+        case avdat["message_format"]
+        when "json"
+          yield LogStash::Event.new("message" => JSON.parse(avdat["message"]), "@metadata" => wapiti_metadata)
+
+        when "binary"
+          @logger.error('FIXME: not terribly sure about this use case; take care')
+          yield LogStash::Event.new("message" => avdat["message"], "@metadata" => wapiti_metadata, "tags" => ["_wapitiwarning"])
+
+        else
+          @logger.error('Message does not have a message_format field in the AVRO record. Treating as plain.')
+          yield LogStash::Event.new("message" => avdat["message"], "@metadata" => wapiti_metadata, "tags" => ["_wapitiwarning"])
+        end
       end
     end
   end
@@ -233,11 +257,27 @@ class LogStash::Codecs::AvroSchemaRegistry < LogStash::Codecs::Base
     buffer.write(MAGIC_BYTE.chr)
     buffer.write([@write_schema_id].pack("I>"))
     encoder = Avro::IO::BinaryEncoder.new(buffer)
-    eh = event.to_hash
+
+    eh = {}
+    eh["submitted_from"] = event.get("[@metadata][wapiti][submitted_from]") || event.get("host") || "local"
+    eh["originating_host"] = event.get("[@metadata][wapiti][originating_host]") || event.get("host") || "local"
+    eh["vertical"] = event.get("[@metadata][wapiti][vertical]") || "unknown"
+    eh["environment"] = event.get("[@metadata][wapiti][environment]") || "unknown"
+    eh["processing_key"] = event.get("[@metadata][wapiti][processing_key]") || "none"
+    eh["message_format"] = event.get("[@metadata][wapiti][message_format]") || "json"
+
+    case eh["message_format"]
+    when "binary"
+      eh["message"] = event.get("message")
+    when "json"
+      eh["message"] = event.to_json
+    end
+
     eh.delete_if { |key, _| EXCLUDE_ALWAYS.include? key }
+
     dw.write(eh, encoder)
     if @binary_encoded
-       @on_event.call(event, buffer.string.to_java_bytes)
+       @on_event.call(event, buffer.string)
     else
        @on_event.call(event, Base64.strict_encode64(buffer.string))
     end

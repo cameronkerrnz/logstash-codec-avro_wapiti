@@ -1,17 +1,17 @@
 # encoding: utf-8
 require "logstash/devutils/rspec/spec_helper"
 require 'avro'
-require 'logstash/codecs/avro_schema_registry'
+require 'logstash/codecs/avro_wapiti'
 require 'logstash/event'
 
-describe LogStash::Codecs::AvroSchemaRegistry do
+describe LogStash::Codecs::AvroWapiti do
   let (:avro_config) {{'endpoint' => 'http://registry.example.com'}}
   let (:test_event) { LogStash::Event.new({"foo" => "hello", "bar" => 10}) }
 
   subject do
-    # allow_any_instance_of(LogStash::Codecs::AvroSchemaRegistry).to \
+    # allow_any_instance_of(LogStash::Codecs::AvroWapiti).to \
       # receive(:open_and_read).and_return(avro_config['schema_uri'])
-    next LogStash::Codecs::AvroSchemaRegistry.new(avro_config)
+    next LogStash::Codecs::AvroWapiti.new(avro_config)
   end
 
   context "#decode" do
