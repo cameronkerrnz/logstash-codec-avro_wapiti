@@ -1,0 +1,7 @@
+{
+  "name": "Logstash Plugin Development",
+  "context": "..",
+  "dockerFile": "Dockerfile",
+  //"mounts": [ "source=${localWorkspaceFolder},target=/work,type=bind" ],
+  "remoteUser": "builder"
+}
