@@ -1,7 +1,5 @@
 # Logstash Codec - Wapiti
 
-### v1.1.0
-
 This plugin encapsulates events to/from an AVRO datum for Kafka
 according to the 'Wapiti' schema. The Wapiti schema describes
 a backbone queuing format for numerous types of messages. Each
@@ -14,11 +12,23 @@ The encapsulated message therefore can take any form, although JSON is
 most common. You could imagine packet-data, or even files going through
 the backbone.
 
-## Installation
+## Building
+
+This repository is set up for easy development using VSCode's Remote
+Containers feature using cameronkerrnz/logstash-plugin-dev
+
+Within a shell session, use the following commands to build it:
 
 ```
-logstash-plugin install logstash-codec-avro_wapiti
+bundle install
+gem build logstash-codec-avro_wapiti.gemspec
 ```
+
+## Installation
+
+You'll need to grab the release from github; this plugin is not
+available as a regular logstash plugin, but you can still install
+it using logstash-plugin.
 
 ##  Decoding (input)
 

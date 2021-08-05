@@ -259,8 +259,8 @@ class LogStash::Codecs::AvroWapiti < LogStash::Codecs::Base
     encoder = Avro::IO::BinaryEncoder.new(buffer)
 
     eh = {}
-    eh["submitted_from"] = event.get("[@metadata][wapiti][submitted_from]") || event.get("[host][name]") || event.get("host") || "local"
-    eh["originating_host"] = event.get("[@metadata][wapiti][originating_host]") || event.get("[host][name]") || event.get("host") || "local"
+    eh["submitted_from"] = event.get("[@metadata][wapiti][submitted_from]") || event.get("[host][name]") || event.get("[host][hostname]") || event.get("[host][ip]") || event.get("host") || "local"
+    eh["originating_host"] = event.get("[@metadata][wapiti][originating_host]") || event.get("[host][name]") || event.get("[host][hostname]") || event.get("[host][ip]") || event.get("host") || "local"
     eh["vertical"] = event.get("[@metadata][wapiti][vertical]") || "unknown"
     eh["environment"] = event.get("[@metadata][wapiti][environment]") || "unknown"
     eh["processing_key"] = event.get("[@metadata][wapiti][processing_key]") || "none"
