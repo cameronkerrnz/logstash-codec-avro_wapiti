@@ -222,27 +222,30 @@ class LogStash::Codecs::AvroWapiti < LogStash::Codecs::Base
 
         avdat = datum_reader.read(decoder)
         wapiti_metadata = {
-            "wapiti" => {
-            "submitted_from" => avdat["submitted_from"],
-            "originating_host" => avdat["originating_host"],
-            "vertical" => avdat["vertical"],
-            "environment" => avdat["environment"],
-            "processing_key" => avdat["processing_key"],
-            "message_format" => avdat["message_format"]
-          }
+          "submitted_from" => avdat["submitted_from"],
+          "originating_host" => avdat["originating_host"],
+          "vertical" => avdat["vertical"],
+          "environment" => avdat["environment"],
+          "processing_key" => avdat["processing_key"],
+          "message_format" => avdat["message_format"]
         }
 
         case avdat["message_format"]
         when "json"
-          yield LogStash::Event.new("message" => JSON.parse(avdat["message"]), "@metadata" => wapiti_metadata)
+          ev = LogStash::Event.new(JSON.parse(avdat["message"]))
+          ev.set("[@metadata][wapiti]", wapiti_metadata)
+          yield ev
 
         when "binary"
-          @logger.error('FIXME: not terribly sure about this use case; take care')
-          yield LogStash::Event.new("message" => avdat["message"], "@metadata" => wapiti_metadata, "tags" => ["_wapitiwarning"])
+          @logger.error('FIXME: not implemented')
+          yield LogStash::Event.new("@metadata" => wapiti_metadata, "tags" => ["_wapitiwarning"])
 
         else
           @logger.error('Message does not have a message_format field in the AVRO record. Treating as plain.')
-          yield LogStash::Event.new("message" => avdat["message"], "@metadata" => wapiti_metadata, "tags" => ["_wapitiwarning"])
+          ev = LogStash::Event.new(avdat["message"])
+          ev.set("[@metadata][wapiti]", wapiti_metadata)
+          ev.tag("_wapitiwarning")
+          yield ev
         end
       end
     end

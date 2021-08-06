@@ -1,5 +1,5 @@
-## HEAD
- - Forked from logstash-codec-avro_schema_registry and bulk rename to logstash-codec_avro_wapiti
+## 1.2.2
+ - Updated for ECS compatibility and Logstash 7.13
 
 ## 1.1.0
  - Add support for client side TLS auth to schema registry

@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name          = 'logstash-codec-avro_wapiti'
-  s.version       = '1.2.1'
+  s.version       = '1.2.2'
   s.licenses      = ['Apache-2.0']
   s.summary         = "Encode and decode avro formatted data for a Kafka/AVRO Wapiti schema"
   s.description     = "Encode and decode avro formatted data for a Kafka/AVRO Wapiti schema"
