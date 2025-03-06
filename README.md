@@ -1,3 +1,6 @@
+# ARCHIVED
+I am not in a position to maintain this, and my logstash work required a lot of updating for Logstash 8 than I had time for, so I've made the decision to archive this project. It was last known to work with Logstash 7.
+
 # Logstash Codec - Wapiti
 
 This plugin encapsulates events to/from an AVRO datum for Kafka
